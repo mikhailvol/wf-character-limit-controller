@@ -21,6 +21,10 @@
   const COUNTER_SHOW_ATTR = "data-wf-limit-counter-show"; // wrapper or counter-level
   const NATIVE_BUBBLE_ATTR = "data-wf-limit-native-bubble"; // "true" to show browser message
 
+  // Programmatic changes watcher (enabled by default)
+  const WATCH_ATTR = "data-wf-limit-watch";              // "true" | "false" (default: true)
+  const WATCH_INTERVAL_ATTR = "data-wf-limit-watch-ms";  // number in ms (default: 250)
+
   // ====== INTERNAL ======
   const STORE_INIT_ATTR = "data-wf-limit-initialized";
   const STORE_MAX_ATTR = "data-wf-limit-max-store";
@@ -101,6 +105,20 @@
 
   function wantsNativeBubble(wrap) {
     return String(wrap.getAttribute(NATIVE_BUBBLE_ATTR) || "").toLowerCase() === "true";
+  }
+
+  function wantsWatch(wrap) {
+    const v = wrap.getAttribute(WATCH_ATTR);
+    // enabled by default
+    if (v == null) return true;
+    return String(v).toLowerCase() !== "false";
+  }
+
+  function getWatchInterval(wrap) {
+    const raw = wrap.getAttribute(WATCH_INTERVAL_ATTR);
+    const n = raw ? parseInt(raw, 10) : 250;
+    if (!Number.isFinite(n) || n < 50) return 250;
+    return n;
   }
 
   // DEFAULT MODE = HARD
@@ -416,6 +434,11 @@
         if (firstOverField) firstOverField.focus();
       }
     }, true);
+
+    // Reset support
+    form.addEventListener("reset", () => {
+      setTimeout(() => controllers.forEach((c) => c.update()), 0);
+    });
   }
 
   // ====== INIT WRAP ======
@@ -485,6 +508,27 @@
     });
 
     attachSubmitBlockIfFormExists(wrap, controllers);
+
+    // --- Programmatic value watcher (enabled by default) ---
+    if (wantsWatch(wrap)) {
+      const interval = getWatchInterval(wrap);
+      const last = new Map();
+      controllers.forEach((c) => last.set(c.field, c.field.value || ""));
+
+      setInterval(() => {
+        if (document.hidden) return;
+
+        controllers.forEach((c) => {
+          const current = c.field.value || "";
+          const prev = last.get(c.field);
+
+          if (current !== prev) {
+            last.set(c.field, current);
+            c.update();
+          }
+        });
+      }, interval);
+    }
 
     window.addEventListener("resize", () => {
       controllers.forEach((c) => c.update());
