@@ -44,7 +44,10 @@ It supports:
 
 # 🚀 Quick Start
 
-1.  Add the WF Limit script before `</body>`.
+1.  **Add the JS** (right before `</body>`):
+```html
+<script defer src="https://cdn.jsdelivr.net/gh/mikhailvol/wf-character-limit-controller@latest/wf-char-count.js"></script>
+```
 2.  Wrap your fields:
 
 ``` html
